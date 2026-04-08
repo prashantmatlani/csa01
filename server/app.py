@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from app.env import CustomerSupportEnv
 
+import uvicorn
 import json
 
 app = FastAPI()
@@ -69,3 +70,7 @@ def step(req: StepRequest):
 @app.get("/")
 def root():
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    uvicorn.run("server.app:app", host="127.0.0.1", port=8000, reload=True)
