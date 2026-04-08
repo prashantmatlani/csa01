@@ -76,6 +76,11 @@ class CustomerSupportEnv:
     
     
     def step(self, action: dict):
+        
+         # ✅ SAFETY: ensure environment initialized
+        if self.state_data is None:
+            print("⚠️ step() called before reset — auto-resetting", flush=True)
+            self.reset()
 
         reward = 0.0
         done = False
