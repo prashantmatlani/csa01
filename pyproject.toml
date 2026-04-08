@@ -1,20 +1,16 @@
 [project]
-name = "openenv-customer-support-agent"
+name = "openenv-customer-support"
 version = "0.1.0"
-description = "Customer Support Agent OpenEnv Environment"
-authors = [
-    { name = "P Matlani" }
-]
 dependencies = [
     "fastapi",
     "uvicorn",
-    "pydantic"
+    "pydantic",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:app"
 
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-
