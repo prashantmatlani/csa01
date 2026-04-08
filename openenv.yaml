@@ -1,0 +1,116 @@
+name: customer-support-agent
+description: >
+  A goal-oriented customer support environment where an agent must gather
+  required information from the user and resolve the ticket efficiently.
+
+version: 1.0
+
+# =========================
+# ENTRYPOINT
+# =========================
+entry_point: server7860:app
+
+# =========================
+# INTERFACE
+# =========================
+interfaces:
+  - type: http
+    port: 7860
+    routes:
+      reset: /reset
+      step: /step
+
+# =========================
+# ENVIRONMENT LIMITS
+# =========================
+max_steps: 10
+
+reward_range:
+  min: -1.0
+  max: 2.0
+
+# =========================
+# ACTION SPACE
+# =========================
+actions:
+  - name: ask_info
+    description: Request missing information from the user
+    parameters:
+      field:
+        type: string
+        enum:
+          - order_id
+          - account_email
+          - device_type
+          - browser
+
+  - name: classify
+    description: Classify the user issue into a category
+    parameters: {}
+
+  - name: resolve
+    description: Resolve the ticket if sufficient information is available
+    parameters: {}
+
+# =========================
+# OBSERVATION SPACE
+# =========================
+observation_space:
+  type: object
+  properties:
+    ticket_id:
+      type: string
+
+    customer_message:
+      type: string
+
+    history:
+      type: array
+      items:
+        type: object
+
+    known_info:
+      type: object
+      additionalProperties: true
+
+    required:
+      type: array
+      items:
+        type: string
+
+    missing_required:
+      type: array
+      items:
+        type: string
+
+    info_progress:
+      type: number
+
+    status:
+      type: string
+      enum: [open, resolved]
+
+    step_count:
+      type: integer
+
+    remaining_steps:
+      type: integer
+
+# =========================
+# TERMINATION CONDITIONS
+# =========================
+termination:
+  success:
+    description: Ticket resolved with all required information collected
+  failure:
+    description: Max steps reached without resolution
+
+# =========================
+# METADATA
+# =========================
+tags:
+  - customer-support
+  - goal-oriented
+  - information-gathering
+
+difficulty: medium

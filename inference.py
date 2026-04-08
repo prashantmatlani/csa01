@@ -6,12 +6,28 @@ from agent_llm import get_action
 from app.env import CustomerSupportEnv
 
 
+#"""
+#def format_action(action: dict) -> str:
+    #"""Convert action dict → string"""
+#    if not action:
+#        return "null"
+#    return str(action).replace("\n", "").replace("  ", " ")
+#"""
+
 def format_action(action: dict) -> str:
-    """Convert action dict → string"""
     if not action:
         return "null"
-    return str(action).replace("\n", "").replace("  ", " ")
 
+    action_type = action.get("type")
+
+    if action_type == "ask_info":
+        return f"ask_info('{action.get('field')}')"
+    elif action_type == "resolve":
+        return "resolve()"
+    elif action_type == "classify":
+        return "classify()"
+
+    return str(action)
 
 def main():
 
@@ -83,12 +99,19 @@ def main():
         # =========================
         rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 
-        print(
-            f"[END] success={'true' if success else 'false'} "
-            f"steps={step_count} "
-            f"rewards={rewards_str}"
-        )
+        score = 1.0 if success else 0.0
 
+        #print(
+        #    f"[END] success={'true' if success else 'false'} "
+        #    f"steps={step_count} "
+        #    f"rewards={rewards_str}"
+        #)
+        print(
+        f"[END] success={'true' if success else 'false'} "
+        f"steps={step_count} "
+        f"score={score:.2f} "
+        f"rewards={rewards_str}"
+        )
 
 if __name__ == "__main__":
     main()

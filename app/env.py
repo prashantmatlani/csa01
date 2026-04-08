@@ -79,10 +79,10 @@ class CustomerSupportEnv:
 
         reward = 0.0
         done = False
-        #info = {}
-        info = {
-        "final_score": self._compute_final_score() if done else None
-        }
+        info = {}
+        #info = {
+        #"final_score": self._compute_final_score() if done else None
+        #}
 
         collected = self.state_data["collected_info"]
         required = self.state_data["required_info"]
