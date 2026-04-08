@@ -65,3 +65,7 @@ def step(req: StepRequest):
     "done": done,
     "info": {}
     }
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
