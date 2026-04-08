@@ -224,8 +224,8 @@ FORMAT:
 
 def call_llm(prompt):
     completion = client.chat.completions.create(
-        #model=os.getenv("MODEL_NAME"),
-        model="llama-3.1-8b-instant",
+        model=os.getenv("MODEL_NAME"),
+        #model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
         response_format={"type": "json_object"}

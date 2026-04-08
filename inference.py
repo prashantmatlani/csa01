@@ -18,8 +18,8 @@ def main():
     env = CustomerSupportEnv()
     obs = env.reset()
 
-    #model_name = os.getenv("MODEL_NAME", "unknown-model")
-    model_name="llama-3.1-8b-instant"
+    model_name = os.getenv("MODEL_NAME", "unknown-model")
+    #model_name="llama-3.1-8b-instant"
 
     task_name = "customer-support"
     benchmark = "openenv"

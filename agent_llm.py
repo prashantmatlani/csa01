@@ -66,6 +66,7 @@ FORMAT:
 def call_llm(prompt):
     completion = client.chat.completions.create(
         model=os.getenv("MODEL_NAME"),
+        #model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
         response_format={"type": "json_object"}
@@ -204,16 +205,16 @@ def run_agent():
         obs, reward, done, info = env.step(action)
 
     
-        print(f"\nOBS: {obs}")
-        print(f"\nACTION: {action}")
-        print(f"\nREWARD: {reward}")
-        print(f"\nDONE: {done}")
+        #print(f"\nOBS: {obs}")
+        #print(f"\nACTION: {action}")
+        #print(f"\nREWARD: {reward}")
+        #print(f"\nDONE: {done}")
 
     
     #print("FINAL:", info)
-    print(f"\nFINAL: {info if info else 'No info returned'}")
+    #print(f"\nFINAL: {info if info else 'No info returned'}")
     
-    print(f"\nMETRICS: {env.get_metrics()}")
+    #print(f"\nMETRICS: {env.get_metrics()}")
 
 
 if __name__ == "__main__":
