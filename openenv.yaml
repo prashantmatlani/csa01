@@ -15,7 +15,7 @@ entry_point: server.app:app
 # =========================
 interfaces:
   - type: http
-    port: 7860
+    port: 8000
     routes:
       reset: /reset
       step: /step
