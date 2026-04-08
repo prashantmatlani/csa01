@@ -1,0 +1,130 @@
+#agent.py output
+
+output with prompt - 04032026:
+
+prompt = f"""
+You are a customer support agent.
+
+STRICT RULES:
+- If any required info is missing → use ask_info
+- Only resolve AFTER all required info is collected
+
+Return ONLY JSON.
+
+Actions:
+1. ask_info → {{"type": "ask_info", "field": "..."}}
+2. resolve → {{"type": "resolve"}}
+
+Allowed fields: account_email, order_id, device_type, browser
+
+Observation:
+{observation}
+"""
+
+Sending request...
+📡 Calling Groq...
+
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {}, 'missing_info': ['order_id'], 'status': 'open', 'step_count': 0, 'remaining_steps': 10}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'order_id'}
+🎯 REWARD: 0.3
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 1, 'remaining_steps': 9}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 2, 'remaining_steps': 8}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 3, 'remaining_steps': 7}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 4, 'remaining_steps': 6}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 5, 'remaining_steps': 5}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 6, 'remaining_steps': 4}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 7, 'remaining_steps': 3}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 8, 'remaining_steps': 2}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.1
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T11', 'customer_message': "I didn't receive my order but it shows delivered.", 'history': [], 'known_info': {'order_id': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 9, 'remaining_steps': 1}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: -0.8
+✅ DONE: True
+
+🏁 FINAL INFO: {'final_score': 0.3}
+
+
+output with prompt - 04032026:
+
+
+prompt = f"""
+You are a customer support agent.
+
+STRICT RULES:
+1. If missing_info list is NOT empty → you MUST ask for ONE of those fields
+2. If missing_info list is EMPTY → you MUST resolve
+3. NEVER ask for a field that is NOT in missing_info
+4. NEVER repeat asking for the same field
+
+Return ONLY JSON.
+
+Actions:
+- ask_info → {{"type": "ask_info", "field": "..."}}
+- resolve → {{"type": "resolve"}}
+
+Observation:
+{observation}
+"""
+
+
+
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+
+📥 OBS: {'ticket_id': 'T10', 'customer_message': 'Something is wrong with my account.', 'history': [], 'known_info': {}, 'missing_info': ['account_email'], 'status': 'open', 'step_count': 0, 'remaining_steps': 10}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'ask_info', 'field': 'account_email'}
+🎯 REWARD: 0.3
+✅ DONE: False
+
+📥 OBS: {'ticket_id': 'T10', 'customer_message': 'Something is wrong with my account.', 'history': [], 'known_info': {'account_email': 'sample_value'}, 'missing_info': [], 'status': 'open', 'step_count': 1, 'remaining_steps': 9}
+📡 Calling Groq...
+🧠 ACTION: {'type': 'resolve'}
+🎯 REWARD: 1.7
+✅ DONE: True
+
+🏁 FINAL INFO: {'final_score': 0.7}
