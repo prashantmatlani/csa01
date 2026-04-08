@@ -1,7 +1,8 @@
 
 #from server.app import main
 import uvicorn
-import server.app
+#import server.app
+from server.app import app, main  # import both app object and main()
 
 if __name__ == "__main__":
     #main()
