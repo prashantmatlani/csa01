@@ -10,4 +10,4 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["sh", "-c", "if [ \"$RUN_MODE\" = \"server\" ]; then uvicorn server7860:app --host 0.0.0.0 --port 7860; else python inference.py; fi"]
+CMD ["uvicorn", "server7860:app", "--host", "0.0.0.0", "--port", "7860"]
