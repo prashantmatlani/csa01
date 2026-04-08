@@ -1,5 +1,5 @@
 
-# server.py
+# server7860.py
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -43,9 +43,14 @@ def parse_action(action_str: str):
 
 @app.post("/reset")
 def reset():
-    obs = env.reset()
-    return obs   # ✅ MUST return raw observation
-
+    state = env.reset()
+    return {
+        "state": state,
+        "reward": 0,
+        "done": False,
+        "info": {}
+    }
+    
 
 @app.post("/step")
 def step(req: StepRequest):
@@ -55,8 +60,8 @@ def step(req: StepRequest):
     obs, reward, done, info = env.step(action_dict)
 
     return {
-        "observation": obs,
-        "reward": float(reward),
-        "done": bool(done),
-        "info": info
+    "state": obs,
+    "reward": reward,
+    "done": done,
+    "info": {}
     }
