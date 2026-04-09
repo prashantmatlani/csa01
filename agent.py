@@ -10,7 +10,7 @@ import json
 import random
 
 from dotenv import load_dotenv
-# from openai import OpenAI
+from openai import OpenAI
 from groq import Groq
 
 from app.env import CustomerSupportEnv
@@ -28,7 +28,7 @@ ENV_PATH = os.path.join(BASE_DIR, ".env")
 load_dotenv(ENV_PATH)
 print(f"\nCWD: {os.getcwd()}")
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+#client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 #client = os.getenv("GROQ_API_KEY")
 
 #print(f"\nENV PATH: {ENV_PATH}")
@@ -37,9 +37,27 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 ##print("KEY:", os.getenv("GROQ_API_KEY"))
 #print(f"\nmodel name: {os.getenv('MODEL_NAME')}")
 
-print("Sending request...")
+#print("Sending request...")
 
 #sys.exit()
+
+
+# =========================
+# CONFIG (NEW - VENDOR NEUTRAL)
+# =========================
+def get_llm_client():
+    return OpenAI(
+        base_url=os.getenv(
+            "API_BASE_URL",
+            "https://router.huggingface.co/v1"
+        ),
+        api_key=os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+    )
+
+client = get_llm_client()
+
+print(f"[CONFIG] API_BASE_URL={os.getenv('API_BASE_URL', 'https://router.huggingface.co/v1')}")
+print("Sending request...")
 
 # =========================
 # Smarter, mapped ask_info - boosts info_progress speed, reward per episode
@@ -70,7 +88,6 @@ def smart_classify(message):
 
     return {"category": "general", "priority": "medium"}
 
-
 def override_classify(message):
     msg = message.lower()
 
@@ -86,7 +103,6 @@ def override_classify(message):
     return {"type": "classify", "category": "general", "priority": "medium"}
 
 
-
 def is_ready_to_resolve(category, known):
     if category == "billing":
         return "order_id" in known
@@ -100,7 +116,7 @@ def is_ready_to_resolve(category, known):
     return False
 
 # =========================
-# POLICY ENFORCEMENT INTEAD OF LLM DECISION
+# POLICY ENFORCEMENT INSTEAD OF LLM DECISION
 # =========================
 def enforce_policy(obs, action):
     known = obs["known_info"]
@@ -224,7 +240,7 @@ FORMAT:
 
 def call_llm(prompt):
     completion = client.chat.completions.create(
-        model=os.getenv("MODEL_NAME"),
+        model=os.getenv("MODEL_NAME", "unknown-model"),
         #model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
@@ -338,7 +354,7 @@ def get_action(obs):
         return {"type": "classify", "category": "technical", "priority": "medium"}
 
     # =====================
-    # 2. COMPUTE MISSING INFO (🔥 KEY CHANGE)
+    # 2. COMPUTE MISSING INFO
     # =====================
     missing = [f for f in required if f not in known]
 
@@ -410,6 +426,10 @@ def run_multiple(n=3):
 
     avg = sum(scores) / len(scores)
     print("\n📊 AVERAGE SCORE:", avg)
+    #print("\n📊 scores:", scores)
+    #print("\n📊 sum scores:", sum(scores))
+    #print("\n📊 len scores:", len(scores))
+    
 
 
 if __name__ == "__main__":

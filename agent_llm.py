@@ -15,12 +15,27 @@ import json
 import time
 from dotenv import load_dotenv
 from groq import Groq
+from openai import OpenAI
 
 from app.env import CustomerSupportEnv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+#client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# =========================
+# CONFIG (NEW)
+# =========================
+def get_llm_client():
+    return OpenAI(
+        base_url=os.getenv(
+            "API_BASE_URL",
+            "https://router.huggingface.co/v1"
+        ),
+        api_key=os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+    )
+
+client = get_llm_client()
 
 # =========================
 # PROMPT (STRICT + MINIMAL)

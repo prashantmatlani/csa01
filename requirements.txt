@@ -6,3 +6,4 @@ groq
 python-dotenv
 pyyaml
 requests
+openai>=1.0.0

@@ -37,6 +37,12 @@ def main():
     model_name = os.getenv("MODEL_NAME", "unknown-model")
     #model_name="llama-3.1-8b-instant"
 
+    api_base_url = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+
+    #api_base_url = os.getenv("API_BASE_URL")
+
+    print(f"[CONFIG] api_base_url={api_base_url}")
+
     task_name = "customer-support"
     benchmark = "openenv"
 
