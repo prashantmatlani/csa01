@@ -9,11 +9,17 @@ import time
 import json
 import random
 
-from dotenv import load_dotenv
 from openai import OpenAI
-from groq import Groq
+#from groq import Groq
 
 from app.env import CustomerSupportEnv
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#from dotenv import load_dotenv
+#ENV_PATH = os.path.join(BASE_DIR, ".env")
+#load_dotenv(ENV_PATH)
+
 
 # load_dotenv()
 
@@ -22,10 +28,16 @@ from app.env import CustomerSupportEnv
 # BASE_URL = "http://127.0.0.1:8001"
 #load_dotenv("/home/pb/projects/openenv-customer-support/.env")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ENV_PATH = os.path.join(BASE_DIR, ".env")
+try:
+    from dotenv import load_dotenv
 
-load_dotenv(ENV_PATH)
+    ENV_PATH = os.path.join(BASE_DIR, ".env")
+    load_dotenv(ENV_PATH)
+
+except ImportError:
+    # dotenv not available in validator environment
+    pass
+
 print(f"\nCWD: {os.getcwd()}")
 
 #client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -46,13 +58,25 @@ print(f"\nCWD: {os.getcwd()}")
 # CONFIG (NEW - VENDOR NEUTRAL)
 # =========================
 def get_llm_client():
-    return OpenAI(
-        base_url=os.getenv(
-            "API_BASE_URL",
-            "https://router.huggingface.co/v1"
-        ),
-        api_key=os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
-    )
+    if OpenAI is None:
+        return None
+
+    api_key = os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+
+    if not api_key:
+        return None  # 🔥 critical
+
+    try:
+        return OpenAI(
+            base_url=os.getenv(
+                "API_BASE_URL",
+                "https://router.huggingface.co/v1"
+            ),
+            api_key=api_key
+        )
+    except Exception:
+        return None
+
 
 client = get_llm_client()
 

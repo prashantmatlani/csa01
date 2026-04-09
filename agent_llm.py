@@ -13,27 +13,54 @@
 import os
 import json
 import time
-from dotenv import load_dotenv
-from groq import Groq
-from openai import OpenAI
+#from groq import Groq
+#from openai import OpenAI
 
 from app.env import CustomerSupportEnv
 
-load_dotenv()
+#from dotenv import load_dotenv
+#load_dotenv()
+
 
 #client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =========================
-# CONFIG (NEW)
+# OPTIONAL IMPORTS (SAFE)
+# =========================
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# =========================
+# CONFIG - CLIENT-SAFE
 # =========================
 def get_llm_client():
-    return OpenAI(
-        base_url=os.getenv(
-            "API_BASE_URL",
-            "https://router.huggingface.co/v1"
-        ),
-        api_key=os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
-    )
+    if OpenAI is None:
+        return None
+
+    api_key = os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+
+    if not api_key:
+        return None  # 🔥 critical
+
+    try:
+        return OpenAI(
+            base_url=os.getenv(
+                "API_BASE_URL",
+                "https://router.huggingface.co/v1"
+            ),
+            api_key=api_key
+        )
+    except Exception:
+        return None
+
 
 client = get_llm_client()
 
@@ -76,17 +103,24 @@ FORMAT:
 
 
 # =========================
-# LLM CALL
+# LLM CALL (SAFE)
 # =========================
 def call_llm(prompt):
-    completion = client.chat.completions.create(
-        model=os.getenv("MODEL_NAME"),
-        #model="llama-3.1-8b-instant",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-        response_format={"type": "json_object"}
-    )
-    return completion.choices[0].message.content.strip()
+    if client is None:
+        return None  # 🔥 triggers fallback
+
+    try:
+        completion = client.chat.completions.create(
+            model=os.getenv("MODEL_NAME", "unknown-model"),
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+
+        return completion.choices[0].message.content.strip()
+
+    except Exception:
+        return None  # 🔥 triggers fallback
 
 
 # =========================
