@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from app.env import CustomerSupportEnv
 
-import uvicorn
+#import uvicorn
 import json
 
 app = FastAPI()
@@ -45,27 +45,25 @@ def parse_action(action_str: str):
 
 @app.post("/reset")
 def reset():
-    state = env.reset()
+    obs = env.reset()
     return {
-        "state": state,
+        "observation": obs,
         "reward": 0,
         "done": False,
         "info": {}
     }
-    
+
 
 @app.post("/step")
 def step(req: StepRequest):
-
     action_dict = parse_action(req.action)
-
     obs, reward, done, info = env.step(action_dict)
 
     return {
-    "state": obs,
-    "reward": reward,
-    "done": done,
-    "info": {}
+        "observation": obs,   # ✅ NOT "state"
+        "reward": reward,
+        "done": done,
+        "info": info or {}
     }
 
 @app.get("/")
@@ -73,6 +71,6 @@ def root():
     return {"status": "ok"}
 
 
-if __name__ == "__main__":
-    uvicorn.run("server.app:app", host="127.0.0.1", port=8000, reload=True)
+#if __name__ == "__main__":
+#    uvicorn.run("server.app:app", host="127.0.0.1", port=8000, reload=True)
     
