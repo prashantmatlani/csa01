@@ -30,6 +30,26 @@ reward_range:
   max: 2.0
 
 # =========================
+# TASKS + GRADERS
+# =========================
+tasks:
+  - id: easy-info-collection
+    description: Collect at least some relevant information
+    difficulty: easy
+    grader: graders.grade_easy
+
+  - id: medium-complete-info
+    description: Collect all required information efficiently
+    difficulty: medium
+    grader: graders.grade_medium
+
+  - id: hard-efficient-resolution
+    description: Fully resolve ticket with optimal steps
+    difficulty: hard
+    grader: graders.grade_hard
+
+
+# =========================
 # ACTION SPACE
 # =========================
 actions:
@@ -112,5 +132,3 @@ tags:
   - customer-support
   - goal-oriented
   - information-gathering
-
-difficulty: medium

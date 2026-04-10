@@ -5,7 +5,9 @@ import os
 import json
 from agent_llm import get_action
 from app.env import CustomerSupportEnv
+from graders import grade_easy, grade_medium, grade_hard
 
+import sys
 
 # =========================
 # TASK DEFINITIONS
@@ -16,7 +18,7 @@ TASKS = [
     {"name": "hard-efficient-resolution", "type": "hard"},
 ]
 
-
+"""
 # =========================
 # GRADERS (DETERMINISTIC)
 # =========================
@@ -45,7 +47,7 @@ def grade_hard(env, success, steps, rewards):
     )
 
     return max(0.01, min(0.99, score))
-
+"""
 
 def compute_score(task_type, env, success, steps, rewards):
 
@@ -137,7 +139,17 @@ def run_single_task(task):
     # =========================
     # SCORE USING TASK-SPECIFIC GRADER
     # =========================
-    score = compute_score(task_type, env, success, step_count, rewards)
+    #score = compute_score(task_type, env, success, step_count, rewards)
+
+    if task_type == "easy":
+        score = grade_easy(env)
+    elif task_type == "medium":
+        score = grade_medium(env)
+    elif task_type == "hard":
+        score = grade_hard(env)
+    else:
+        score = 0.5
+
 
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 
