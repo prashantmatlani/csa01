@@ -104,6 +104,10 @@ def run_single_task(task_name):
         f"rewards={rewards_str}"
     )
 
+    print(
+    f"[GRADER] task={task_name} score={score:.2f}"
+    )
+
 
 def main():
 
