@@ -5,12 +5,33 @@ from typing import Tuple, Dict, Any
 from app.models import Observation, Action, Reward
 from app.dataset import TICKETS
 import random
+from graders import grade_easy, grade_medium, grade_hard
 
 import sys
 
 class CustomerSupportEnv:
 
-    # INTERNAL STATE REPRESENTATION - 
+    # OBTAIN TASKS FROM GRADERS.PY
+    def get_tasks(self):
+        return [
+            {
+                "id": "easy-info-collection",
+                "difficulty": "easy",
+                "grader": grade_easy,
+            },
+            {
+                "id": "medium-complete-info",
+                "difficulty": "medium",
+                "grader": grade_medium,
+            },
+            {
+                "id": "hard-efficient-resolution",
+                "difficulty": "hard",
+                "grader": grade_hard,
+            },
+        ]
+
+    # INTERNAL STATE REPRESENTATION
     def _get_observation(self):
 
         total_required = len(self.ticket.get("required_info", []))
@@ -44,8 +65,14 @@ class CustomerSupportEnv:
         self.max_steps = 10
         self.last_action = None
 
-        # ✅ METRICS TRACKING
+        # METRICS TRACKING
         self.episode_stats = []
+
+        # CLEAN ENVIRONMENT INITIALIZATION
+        self.tasks = self.get_tasks()
+
+    def list_tasks(self):
+        return self.tasks
 
     def reset(self):
 
