@@ -45,7 +45,7 @@ def compute_score(success, steps, rewards):
     return max(0.01, min(0.99, score))
 
 
-def run_single_task(task_id):
+def run_single_task(task_name):
     env = CustomerSupportEnv()
     obs = env.reset()
 
@@ -75,7 +75,7 @@ def run_single_task(task_id):
             rewards.append(reward)
 
             print(
-                f"[STEP] task={task_id} step={step_count} "
+                f"[STEP] task={task_name} step={step_count} "
                 f"action={format_action(action)} "
                 f"reward={reward:.2f} "
                 f"done={'true' if done else 'false'} "
@@ -88,7 +88,7 @@ def run_single_task(task_id):
 
     except Exception as e:
         print(
-            f"[STEP] task={task_id} step={step_count+1} "
+            f"[STEP] task={task_name} step={step_count+1} "
             f"action=null reward=0.00 done=true error={str(e)}"
         )
 
@@ -97,7 +97,7 @@ def run_single_task(task_id):
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 
     print(
-        f"[END] task={task_id} "
+        f"[END] task={task_name} "
         f"success={'true' if success else 'false'} "
         f"steps={step_count} "
         f"score={score:.2f} "
@@ -123,7 +123,9 @@ def main():
     NUM_TASKS = 3
 
     for i in range(NUM_TASKS):
-        run_single_task(task_id=i + 1)
+        #run_single_task(task_id=i + 1)
+        task_name = f"customer-support-{i+1}"
+        run_single_task(task_name)
 
 
 if __name__ == "__main__":
