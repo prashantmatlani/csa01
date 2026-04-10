@@ -2,18 +2,68 @@
 # inference.py
 
 import os
+import json
 from agent_llm import get_action
 from app.env import CustomerSupportEnv
 
 
-#"""
-#def format_action(action: dict) -> str:
-    #"""Convert action dict → string"""
-#    if not action:
-#        return "null"
-#    return str(action).replace("\n", "").replace("  ", " ")
-#"""
+# =========================
+# TASK DEFINITIONS
+# =========================
+TASKS = [
+    {"name": "easy-info-collection", "type": "easy"},
+    {"name": "medium-complete-info", "type": "medium"},
+    {"name": "hard-efficient-resolution", "type": "hard"},
+]
 
+
+# =========================
+# GRADERS (DETERMINISTIC)
+# =========================
+def get_info_efficiency(env):
+    if env.episode_stats:
+        return env.episode_stats[-1].get("info_efficiency", 0)
+    return 0
+
+def grade_easy(env, success, steps, rewards):
+    # Reward asking at least something
+    score = 0.3 + 0.1 * len(rewards)
+    return max(0.01, min(0.99, score))
+
+def grade_medium(env, success, steps, rewards):
+    info_eff = get_info_efficiency(env)
+    score = 0.5 * info_eff
+    return max(0.01, min(0.99, score))
+
+def grade_hard(env, success, steps, rewards):
+    info_eff = get_info_efficiency(env)
+
+    score = (
+        0.5 * (1 if success else 0) +
+        0.3 * info_eff +
+        0.2 * (1 / (1 + steps))
+    )
+
+    return max(0.01, min(0.99, score))
+
+
+def compute_score(task_type, env, success, steps, rewards):
+
+    if task_type == "easy":
+        return grade_easy(env, success, steps, rewards)
+
+    elif task_type == "medium":
+        return grade_medium(env, success, steps, rewards)
+
+    elif task_type == "hard":
+        return grade_hard(env, success, steps, rewards)
+
+    return 0.5  # fallback (should never hit)
+
+
+# =========================
+# ACTION FORMATTER
+# =========================
 def format_action(action: dict) -> str:
     if not action:
         return "null"
@@ -29,23 +79,15 @@ def format_action(action: dict) -> str:
 
     return str(action)
 
-def compute_score(success, steps, rewards):
-    """
-    Continuous score in (0,1)
-    """
-    avg_reward = sum(rewards) / max(1, len(rewards))
 
-    score = (
-        0.5 * (1.0 if success else 0.0) +
-        0.3 * (1 / (1 + steps)) +
-        0.2 * max(0, min(1, avg_reward))
-    )
+# =========================
+# RUN SINGLE TASK
+# =========================
+def run_single_task(task):
 
-    # Clamp to (0,1) but not exact
-    return max(0.01, min(0.99, score))
+    task_name = task["name"]
+    task_type = task["type"]
 
-
-def run_single_task(task_name):
     env = CustomerSupportEnv()
     obs = env.reset()
 
@@ -92,7 +134,10 @@ def run_single_task(task_name):
             f"action=null reward=0.00 done=true error={str(e)}"
         )
 
-    score = compute_score(success, step_count, rewards)
+    # =========================
+    # SCORE USING TASK-SPECIFIC GRADER
+    # =========================
+    score = compute_score(task_type, env, success, step_count, rewards)
 
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 
@@ -104,11 +149,19 @@ def run_single_task(task_name):
         f"rewards={rewards_str}"
     )
 
-    print(
-    f"[GRADER] task={task_name} score={score:.2f}"
-    )
+    # =========================
+    # CRITICAL: JSON OUTPUT (GRADER SIGNAL)
+    # =========================
+    print(f"\n")
+    print(json.dumps({
+        "task": task_name,
+        "score": round(score, 4)
+    }))
+    print(f"\n")
 
-
+# =========================
+# MAIN
+# =========================
 def main():
 
     model_name = os.getenv("MODEL_NAME", "unknown-model")
@@ -116,21 +169,13 @@ def main():
 
     print(f"[CONFIG] api_base_url={api_base_url}")
 
-    task_name = "customer-support"
-    benchmark = "openenv"
+    print(f"[START] task=customer-support env=openenv model={model_name}")
 
-    print(f"[START] task={task_name} env={benchmark} model={model_name}")
-
-    # =========================
-    # RUN MULTIPLE TASKS (IMPORTANT)
-    # =========================
-    NUM_TASKS = 3
-
-    for i in range(NUM_TASKS):
-        #run_single_task(task_id=i + 1)
-        task_name = f"customer-support-{i+1}"
-        run_single_task(task_name)
+    # ✅ RUN DISTINCT TASKS (NOT LOOP COPIES)
+    for task in TASKS:
+        run_single_task(task)
 
 
 if __name__ == "__main__":
     main()
+
