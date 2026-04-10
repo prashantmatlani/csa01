@@ -194,7 +194,7 @@ def main():
 
     print(f"[START] task=customer-support env=openenv model={model_name}")
 
-    print(f"\n[DEBUG] Running {len(TASKS)} tasks\n")
+    #print(f"[DEBUG] Running {len(TASKS)} tasks")
 
     # RUN DISTINCT TASKS (NOT LOOP COPIES)
     for task in TASKS:

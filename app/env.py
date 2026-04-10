@@ -12,6 +12,9 @@ import sys
 
 AVAILABLE_TASKS = TASKS
 
+def get_tasks():
+    return AVAILABLE_TASKS
+
 class CustomerSupportEnv:
 
     # OBTAIN TASKS FROM GRADERS.PY
@@ -278,5 +281,3 @@ class CustomerSupportEnv:
             "info_efficiency": round(info_eff, 3)
         }
     
-def get_tasks():
-    return AVAILABLE_TASKS
