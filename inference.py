@@ -6,9 +6,11 @@ import json
 from agent_llm import get_action
 from app.env import CustomerSupportEnv
 from graders import grade_easy, grade_medium, grade_hard
+from tasks import TASKS
 
 import sys
 
+"""
 # =========================
 # TASK DEFINITIONS
 # =========================
@@ -17,6 +19,7 @@ TASKS = [
     {"name": "medium-complete-info", "type": "medium"},
     {"name": "hard-efficient-resolution", "type": "hard"},
 ]
+"""
 
 """
 # =========================
@@ -141,6 +144,14 @@ def run_single_task(task):
     # =========================
     #score = compute_score(task_type, env, success, step_count, rewards)
 
+    grader = task.get("grader")
+
+    if grader:
+        score = grader(env, success, step_count, rewards)
+    else:
+        score = 0.5
+
+    """
     if task_type == "easy":
         score = grade_easy(env)
     elif task_type == "medium":
@@ -149,7 +160,7 @@ def run_single_task(task):
         score = grade_hard(env)
     else:
         score = 0.5
-
+    """
 
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 

@@ -6,8 +6,11 @@ from app.models import Observation, Action, Reward
 from app.dataset import TICKETS
 import random
 from graders import grade_easy, grade_medium, grade_hard
+from tasks import TASKS
 
 import sys
+
+AVAILABLE_TASKS = TASKS
 
 class CustomerSupportEnv:
 
@@ -274,3 +277,6 @@ class CustomerSupportEnv:
             "avg_reward": round(avg_reward, 3),
             "info_efficiency": round(info_eff, 3)
         }
+    
+def get_tasks():
+    return AVAILABLE_TASKS

@@ -7,31 +7,41 @@ def get_info_efficiency(env):
     return 0
 
 
-def grade_easy(env, trajectory=None, final_state=None):
-    rewards = [step.get("reward", 0) for step in (trajectory or [])]
-    score = 0.3 + 0.1 * len(rewards)
-    return max(0.0, min(1.0, score))
+def grade_easy(env, success=None, steps=None, rewards=None):
+    score = 0.3 + 0.1 * (len(rewards) if rewards else 0)
+
+    #print(f"\nrewards: {rewards}")
+    #print(f"\nlen rewards: {len(rewards)}")
+    #print(f"\nscore: {score}")
+
+    return max(0.01, min(0.99, score))
 
 
-def grade_medium(env, trajectory=None, final_state=None):
+def grade_medium(env, success=None, steps=None, rewards=None):
     info_eff = get_info_efficiency(env)
     score = 0.5 * info_eff
-    return max(0.0, min(1.0, score))
+
+    #print(f"\ninfo_eff: {info_eff}")
+    #print(f"\nscore: {score}")
+
+    return max(0.01, min(0.99, score))
 
 
-def grade_hard(env, trajectory=None, final_state=None):
+def grade_hard(env, success=None, steps=None, rewards=None):
     info_eff = get_info_efficiency(env)
-
-    success = False
-    steps = len(trajectory or [])
-
-    if hasattr(env, "episode_stats") and env.episode_stats:
-        success = env.episode_stats[-1].get("success", False)
 
     score = (
         0.5 * (1 if success else 0) +
         0.3 * info_eff +
-        0.2 * (1 / (1 + steps))
+        0.2 * (1 / (1 + (steps or 1)))
     )
 
-    return max(0.0, min(1.0, score))
+    #print(f"\nsteps: {steps}")
+    #print(f"\ninfo_eff: {info_eff}")
+    #print(f"\nlen trajectory: {len(trajectory or [])}")
+    #print(f"\nscore: {score}")
+
+    return max(0.01, min(0.99, score))
+
+
+
