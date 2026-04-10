@@ -175,12 +175,12 @@ def run_single_task(task):
     # =========================
     # CRITICAL: JSON OUTPUT (GRADER SIGNAL)
     # =========================
-    print(f"\n")
+    #print(f"\n")
     print(json.dumps({
-        "task_id": task_name,
-        "score": round(score, 4)
-    }))
-    print(f"\n")
+    "task_id": task_name,
+    "score": float(round(score, 4))
+    }), flush=True)
+    #print(f"\n")
 
 # =========================
 # MAIN
