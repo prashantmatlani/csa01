@@ -185,6 +185,7 @@ def run_single_task(task):
 # =========================
 # MAIN
 # =========================
+"""
 def main():
 
     model_name = os.getenv("MODEL_NAME", "unknown-model")
@@ -199,7 +200,25 @@ def main():
     # RUN DISTINCT TASKS (NOT LOOP COPIES)
     for task in TASKS:
         run_single_task(task)
+"""
 
+def main():
+
+    model_name = os.getenv("MODEL_NAME", "unknown-model")
+    api_base_url = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+
+    print(f"[CONFIG] api_base_url={api_base_url}")
+
+    benchmark = "openenv"
+
+    # 🚨 CRITICAL: One START per task (validator reads this)
+    for task in TASKS:
+
+        task_name = task["name"]
+
+        print(f"[START] task={task_name} env={benchmark} model={model_name}")
+
+        run_single_task(task)
 
 if __name__ == "__main__":
     main()
