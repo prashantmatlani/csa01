@@ -177,7 +177,7 @@ def run_single_task(task):
     # =========================
     print(f"\n")
     print(json.dumps({
-        "task": task_name,
+        "task_id": task_name,
         "score": round(score, 4)
     }))
     print(f"\n")
@@ -194,7 +194,9 @@ def main():
 
     print(f"[START] task=customer-support env=openenv model={model_name}")
 
-    # ✅ RUN DISTINCT TASKS (NOT LOOP COPIES)
+    print(f"\n[DEBUG] Running {len(TASKS)} tasks\n")
+
+    # RUN DISTINCT TASKS (NOT LOOP COPIES)
     for task in TASKS:
         run_single_task(task)
 
