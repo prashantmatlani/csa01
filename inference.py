@@ -51,8 +51,8 @@ def format_action(action: dict) -> str:
 # =========================
 def run_single_task(task):
 
-    task_name = task["name"]
-    task_type = task["type"]
+    task_name = task["id"]
+    task_type = task["difficulty"]
 
     env = CustomerSupportEnv()
     obs = env.reset()
@@ -175,7 +175,7 @@ def main():
     # 🚨 CRITICAL: One START per task (validator reads this)
     for task in TASKS:
 
-        task_name = task["name"]
+        task_name = task["id"]
 
         print(f"[START] task={task_name} env={benchmark} model={model_name}")
 
