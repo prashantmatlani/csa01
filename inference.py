@@ -6,51 +6,12 @@ import json
 from agent_llm import get_action
 from app.env import CustomerSupportEnv
 from graders import grade_easy, grade_medium, grade_hard
-from tasks import TASKS
+#from tasks import TASKS
+from app.env import get_tasks
 
 import sys
 
-"""
-# =========================
-# TASK DEFINITIONS
-# =========================
-TASKS = [
-    {"name": "easy-info-collection", "type": "easy"},
-    {"name": "medium-complete-info", "type": "medium"},
-    {"name": "hard-efficient-resolution", "type": "hard"},
-]
-"""
-
-"""
-# =========================
-# GRADERS (DETERMINISTIC)
-# =========================
-def get_info_efficiency(env):
-    if env.episode_stats:
-        return env.episode_stats[-1].get("info_efficiency", 0)
-    return 0
-
-def grade_easy(env, success, steps, rewards):
-    # Reward asking at least something
-    score = 0.3 + 0.1 * len(rewards)
-    return max(0.01, min(0.99, score))
-
-def grade_medium(env, success, steps, rewards):
-    info_eff = get_info_efficiency(env)
-    score = 0.5 * info_eff
-    return max(0.01, min(0.99, score))
-
-def grade_hard(env, success, steps, rewards):
-    info_eff = get_info_efficiency(env)
-
-    score = (
-        0.5 * (1 if success else 0) +
-        0.3 * info_eff +
-        0.2 * (1 / (1 + steps))
-    )
-
-    return max(0.01, min(0.99, score))
-"""
+TASKS = get_tasks()
 
 def compute_score(task_type, env, success, steps, rewards):
 

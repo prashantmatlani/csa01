@@ -10,7 +10,44 @@ from tasks import TASKS
 
 import sys
 
-AVAILABLE_TASKS = TASKS
+DIFFICULTY_CONFIG = {
+    "easy": {
+        "max_steps": 8,
+        "noise_prob": 0.0,
+        "missing_info_prob": 0.1
+    },
+    "medium": {
+        "max_steps": 10,
+        "noise_prob": 0.2,
+        "missing_info_prob": 0.3
+    },
+    "hard": {
+        "max_steps": 12,
+        "noise_prob": 0.4,
+        "missing_info_prob": 0.5
+    }
+}
+
+# --- TASKS ---
+#AVAILABLE_TASKS = TASKS
+
+AVAILABLE_TASKS = [
+    {
+        "id": "easy-info-collection",
+        "difficulty": "easy",
+        "grader": grade_easy
+    },
+    {
+        "id": "medium-complete-info",
+        "difficulty": "medium",
+        "grader": grade_medium
+    },
+    {
+        "id": "hard-efficient-resolution",
+        "difficulty": "hard",
+        "grader": grade_hard
+    }
+]
 
 def get_tasks():
     return AVAILABLE_TASKS
@@ -64,41 +101,50 @@ class CustomerSupportEnv:
         "status": self.state_data["status"],
         "step_count": self.state_data["steps_taken"],
         "remaining_steps": self.max_steps - self.state_data["steps_taken"],
+        "difficulty": self.difficulty # difficulty awareness 
         }
 
-    def __init__(self):
+    
+    def __init__(self, difficulty="medium", seed=None):
+
+        self.difficulty = difficulty
+        self.config = DIFFICULTY_CONFIG[difficulty]
+
+        if seed is not None:
+            random.seed(seed)
+
         self.state_data = None
-        self.max_steps = 10
+        self.max_steps = self.config["max_steps"]
         self.last_action = None
 
         # METRICS TRACKING
         self.episode_stats = []
 
-        # CLEAN ENVIRONMENT INITIALIZATION
-        self.tasks = self.get_tasks()
-
     def list_tasks(self):
         return self.tasks
+
 
     def reset(self):
 
         self.last_action = None
-
-        # ✅ episode tracking
         self.current_episode_reward = 0.0
         self.current_steps = 0
         self.success = False
 
+        # 🎯 Controlled ticket sampling
         self.ticket = random.choice(TICKETS)
+
+        # 🎯 Inject stochasticity (controlled)
+        noisy_message = self._inject_noise(self.ticket["customer_message"])
 
         self.state_data = {
             "ticket_id": self.ticket["ticket_id"],
-            "customer_message": self.ticket["customer_message"],
+            "customer_message": noisy_message,
             "history": [],
             "status": "open",
             "priority": None,
             "category": None,
-            "required_info": self.ticket["required_info"].copy(),
+            "required_info": self._mask_required_info(self.ticket["required_info"]),
             "collected_info": {},
             "steps_taken": 0,
             "max_steps": self.max_steps,
@@ -106,13 +152,12 @@ class CustomerSupportEnv:
         }
 
         return self._get_observation()
-    
-    
+
     def step(self, action: dict):
         
-         # ✅ SAFETY: ensure environment initialized
+         # SAFETY: ensure environment initialized
         if self.state_data is None:
-            print("⚠️ step() called before reset — auto-resetting", flush=True)
+            print("step() called before reset — auto-resetting", flush=True)
             self.reset()
 
         reward = 0.0
@@ -281,3 +326,28 @@ class CustomerSupportEnv:
             "info_efficiency": round(info_eff, 3)
         }
     
+
+    def _inject_noise(self, message):
+
+        if random.random() < self.config["noise_prob"]:
+            noise_phrases = [
+                "pls help asap",
+                "this is urgent",
+                "not sure what's wrong",
+                "it’s been days"
+            ]
+            return message + " " + random.choice(noise_phrases)
+
+        return message
+
+
+    def _mask_required_info(self, required_fields):
+
+        masked = []
+
+        for field in required_fields:
+            if random.random() > self.config["missing_info_prob"]:
+                masked.append(field)
+
+        # ensure at least 1 required field remains
+        return masked if masked else required_fields
