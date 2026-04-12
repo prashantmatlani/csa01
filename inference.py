@@ -54,7 +54,8 @@ def run_single_task(task):
     task_name = task["id"]
     task_type = task["difficulty"]
 
-    env = CustomerSupportEnv()
+    #env = CustomerSupportEnv()
+    env = CustomerSupportEnv(difficulty=task["difficulty"])
     obs = env.reset()
 
     step_count = 0

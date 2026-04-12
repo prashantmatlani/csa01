@@ -6,10 +6,15 @@ from app.models import Observation, Action, Reward
 from app.dataset import TICKETS
 import random
 from graders import grade_easy, grade_medium, grade_hard
-from tasks import TASKS
+#from tasks import TASKS
 
 import sys
 
+# =========================
+# PURPOSE: Controls difficulty-driven stochasticity
+# - noise_prob → message distortion
+# - missing_info_prob → partial observability
+# =========================
 DIFFICULTY_CONFIG = {
     "easy": {
         "max_steps": 8,
@@ -28,9 +33,9 @@ DIFFICULTY_CONFIG = {
     }
 }
 
-# --- TASKS ---
-#AVAILABLE_TASKS = TASKS
-
+# =========================
+# PURPOSE: Defines tasks exposed to validator
+# =========================
 AVAILABLE_TASKS = [
     {
         "id": "easy-info-collection",
@@ -74,37 +79,33 @@ class CustomerSupportEnv:
             },
         ]
 
-    # INTERNAL STATE REPRESENTATION
+    # =========================
+    # PURPOSE: Build observation exposed to agent
+    # =========================
     def _get_observation(self):
 
-        total_required = len(self.ticket.get("required_info", []))
-        collected_required = sum(
-            1 for f in self.ticket.get("required_info", [])
-            if f in self.state_data["collected_info"]
-        )
+        required = self.state_data["required_info"]
+        collected = self.state_data["collected_info"]
 
-        info_progress = collected_required / max(1, total_required)
-        
+        total = len(required)
+        collected_count = sum(1 for f in required if f in collected)
+
         return {
-        "ticket_id": self.ticket["ticket_id"],
-        "customer_message": self.ticket["customer_message"],
-        "history": [],
-        "known_info": self.state_data["collected_info"],
-        "required": self.ticket.get("required_info", []),  # FULL requirement space (agent uses this)
-        #"remaining_required": self.state_data["required_info"],   # OPTIONAL (env/debug/analysis); agent_llm shouldn't use this directly - it should infer from known_info + customer_message
-        "missing_required": [
-            f for f in self.ticket.get("required_info", [])
-            if f not in self.state_data["collected_info"]
-        ],
-        #"info_progress": len(self.state_data["collected_info"]) / 3,
-        "info_progress": info_progress,
-        "status": self.state_data["status"],
-        "step_count": self.state_data["steps_taken"],
-        "remaining_steps": self.max_steps - self.state_data["steps_taken"],
-        "difficulty": self.difficulty # difficulty awareness 
+            "ticket_id": self.ticket["ticket_id"],
+            "customer_message": self.state_data["customer_message"],
+            "known_info": collected,
+            "required": required,
+            "missing_required": [f for f in required if f not in collected],
+            "info_progress": collected_count / max(1, total),
+            "status": self.state_data["status"],
+            "step_count": self.state_data["steps_taken"],
+            "remaining_steps": self.max_steps - self.state_data["steps_taken"],
+            "difficulty": self.difficulty # difficulty awareness 
         }
 
-    
+    # =========================
+    # PURPOSE: Initialize environment with difficulty & randomness
+    # =========================
     def __init__(self, difficulty="medium", seed=None):
 
         self.difficulty = difficulty
@@ -117,82 +118,86 @@ class CustomerSupportEnv:
         self.max_steps = self.config["max_steps"]
         self.last_action = None
 
+        # self-correction tracking
+        self.classification_history = []
+        
         # METRICS TRACKING
         self.episode_stats = []
 
     def list_tasks(self):
         return self.tasks
 
-
     def reset(self):
 
         self.last_action = None
-        self.current_episode_reward = 0.0
+        #self.current_episode_reward = 0.0
         self.current_steps = 0
         self.success = False
 
-        # 🎯 Controlled ticket sampling
         self.ticket = random.choice(TICKETS)
+        gt = self.ticket["ground_truth"]
 
-        # 🎯 Inject stochasticity (controlled)
-        noisy_message = self._inject_noise(self.ticket["customer_message"])
+        msg = random.choice(self.ticket["variants"])
+        msg = self._inject_noise(msg)
+
+        masked_required = self._mask_required_info(gt["required_info"])
 
         self.state_data = {
             "ticket_id": self.ticket["ticket_id"],
-            "customer_message": noisy_message,
-            "history": [],
+            "customer_message": msg,
             "status": "open",
-            "priority": None,
             "category": None,
-            "required_info": self._mask_required_info(self.ticket["required_info"]),
+            "priority": None,
+            "required_info": masked_required,
             "collected_info": {},
             "steps_taken": 0,
-            "max_steps": self.max_steps,
-            "ground_truth": self.ticket
+            "ground_truth": gt
         }
 
         return self._get_observation()
 
+    # =========================
+    # PURPOSE: Core transition function with self-correction logic
+    # =========================
     def step(self, action: dict):
-        
-         # SAFETY: ensure environment initialized
+
         if self.state_data is None:
-            print("step() called before reset — auto-resetting", flush=True)
             self.reset()
 
-        reward = 0.0
+        reward = -0.05
         done = False
         info = {}
-        #info = {
-        #"final_score": self._compute_final_score() if done else None
-        #}
 
         collected = self.state_data["collected_info"]
-        required = self.state_data["required_info"]
-        gt = self.ticket
+        gt = self.ticket["ground_truth"]
+
+        action_type = action.get("type") if isinstance(action, dict) else None
 
         # -----------------------
-        # STEP PENALTY
-        # -----------------------
-        reward -= 0.05
-
-        action_type = action.get("type")
-
-        # -----------------------
-        # REPEAT PENALTY
-        # -----------------------
-        if self.last_action == action:
-            reward -= 0.2
-
-        # -----------------------
-        # CLASSIFY
+        # CLASSIFY (SELF-CORRECTION ENABLED)
         # -----------------------
         if action_type == "classify":
 
-            collected["category"] = gt["category"]
-            collected["priority"] = gt["priority"]
+            new_cat = action.get("category")
+            prev_cat = collected.get("category")
 
-            reward += 0.2
+            collected["category"] = new_cat
+            collected["priority"] = action.get("priority")
+
+            self.classification_history.append(new_cat)
+
+            # correct classification
+            if new_cat == gt["category"]:
+                reward += 0.3
+
+            # self-correction bonus
+            if prev_cat and prev_cat != gt["category"] and new_cat == gt["category"]:
+                reward += 0.5  # major reward
+
+            # flip-flop penalty
+            if len(self.classification_history) >= 3:
+                if len(set(self.classification_history[-3:])) > 2:
+                    reward -= 0.3
 
         # -----------------------
         # ASK INFO
@@ -202,13 +207,10 @@ class CustomerSupportEnv:
             field = action.get("field")
 
             if field not in collected:
-                collected[field] = "sample_value"
-                reward += 0.3
-
-                if field in required:
-                    required.remove(field)
+                collected[field] = "value"
+                reward += 0.25
             else:
-                reward -= 0.3
+                reward -= 0.2
 
         # -----------------------
         # RESOLVE
@@ -216,57 +218,26 @@ class CustomerSupportEnv:
         elif action_type == "resolve":
 
             done = True
-            final_score = 0.0
 
-            # classification
-            if collected.get("category") == gt.get("category"):
-                final_score += 0.3
+            required = gt["required_info"]
+            all_info = all(f in collected for f in required)
 
-            if collected.get("priority") == gt.get("priority"):
-                final_score += 0.2
+            correct_cat = collected.get("category") == gt["category"]
 
-            # required info
-            required_fields = gt.get("required_info", [])
-            if all(f in collected for f in required_fields):
-                final_score += 0.3
-                self.success = True
-            else:
-                reward -= 0.5
+            # 🔥 premature penalty
+            if not all_info:
+                reward -= 0.7
 
-            # resolve bonus
-            final_score += 0.2
-
-            reward += final_score
-
-            # efficiency bonus
-            optimal_steps = len(required_fields) + 1
-            if self.state_data["steps_taken"] <= optimal_steps:
+            # scoring
+            if correct_cat:
                 reward += 0.3
 
-            # episode stats
-            collected_required = sum(1 for f in required_fields if f in collected)
+            if all_info:
+                reward += 0.3
+                self.success = True
 
-            episode_data = {
-                "success": self.success,
-                "steps": self.state_data["steps_taken"],
-                "reward": reward,
-                "info_efficiency": collected_required / max(1, len(required_fields))
-            }
+            reward += 0.2  # completion bonus
 
-            self.episode_stats.append(episode_data)
-
-            info = {
-                "final_score": final_score,
-                "task_success": self.success,
-                "collected_info": collected
-            }
-
-            self.last_action = action
-            return self._get_observation(), reward, done, info
-
-        # -----------------------
-        # INVALID
-        # -----------------------
         else:
             reward -= 0.3
 
@@ -274,35 +245,14 @@ class CustomerSupportEnv:
         # STEP UPDATE
         # -----------------------
         self.state_data["steps_taken"] += 1
-        self.current_steps += 1
 
-        # -----------------------
-        # MAX STEP TERMINATION
-        # -----------------------
-        if self.state_data["steps_taken"] >= self.state_data["max_steps"]:
+        if self.state_data["steps_taken"] >= self.max_steps:
             done = True
-            reward -= 2.0
+            reward -= 1.5
 
-            # record failure episode
-            self.episode_stats.append({
-                "success": False,
-                "steps": self.state_data["steps_taken"],
-                "reward": reward,
-                "info_efficiency": 0
-            })
-
-            info = {
-                "final_score": 0.0,
-                "task_success": False
-            }
-
-        # -----------------------
-        # SAVE STATE
-        # -----------------------
-        self.last_action = action
-        self.current_episode_reward += reward
-
-        return self._get_observation(), reward, done, info
+        return self._get_observation(), reward, done, {
+            "task_success": self.success
+        }
     
     def state(self) -> Dict:
         return self.state_data
@@ -326,21 +276,32 @@ class CustomerSupportEnv:
             "info_efficiency": round(info_eff, 3)
         }
     
-
+    # =========================
+    # PURPOSE: Apply noise to simulate real-world messy input
+    # =========================
     def _inject_noise(self, message):
-
         if random.random() < self.config["noise_prob"]:
-            noise_phrases = [
+            noise = random.choice([
                 "pls help asap",
-                "this is urgent",
                 "not sure what's wrong",
-                "it’s been days"
-            ]
-            return message + " " + random.choice(noise_phrases)
-
+                "this is urgent",
+                "been days"
+            ])
+            return message + " " + noise
         return message
 
 
+     # =========================
+    # PURPOSE: Mask required fields → partial observability
+    # =========================
+    def _mask_required_info(self, required_fields):
+        masked = [
+            f for f in required_fields
+            if random.random() > self.config["missing_info_prob"]
+        ]
+        return masked if masked else required_fields
+
+    """
     def _mask_required_info(self, required_fields):
 
         masked = []
@@ -351,3 +312,4 @@ class CustomerSupportEnv:
 
         # ensure at least 1 required field remains
         return masked if masked else required_fields
+    """

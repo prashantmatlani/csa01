@@ -15,6 +15,7 @@ import json
 import time
 #from groq import Groq
 #from openai import OpenAI
+import random
 
 from app.env import CustomerSupportEnv
 
@@ -25,7 +26,7 @@ from app.env import CustomerSupportEnv
 #client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =========================
-# OPTIONAL IMPORTS (SAFE)
+# PURPOSE: Safe OpenAI client init
 # =========================
 try:
     from openai import OpenAI
@@ -45,61 +46,47 @@ def get_llm_client():
     if OpenAI is None:
         return None
 
-    api_key = os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
-
-    if not api_key:
-        return None  # 🔥 critical
-
-    try:
-        return OpenAI(
-            base_url=os.getenv(
-                "API_BASE_URL",
-                "https://router.huggingface.co/v1"
-            ),
-            api_key=api_key
-        )
-    except Exception:
+    key = os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+    if not key:
         return None
 
+    return OpenAI(
+        base_url=os.getenv("API_BASE_URL", "https://router.huggingface.co/v1"),
+        api_key=key
+    )
 
 client = get_llm_client()
 
 # =========================
-# PROMPT (STRICT + MINIMAL)
+# PURPOSE: Prompt - Strict + Minimal - encourages uncertainty-aware reasoning
 # =========================
-def build_prompt(obs, valid_actions):
+def build_prompt(obs):
     return f"""
-You are a decision agent for customer support.
+    You are a customer support agent.
 
-Return ONLY JSON.
+    Customer message:
+    {obs.get("customer_message")}
 
-INPUT:
-Customer message: {obs["customer_message"]}
-Known info: {obs["known_info"]}
-Required fields: {obs.get("required", [])}
+    Known info:
+    {obs.get("known_info")}
 
-RULES:
-1. First classify (billing / technical / delivery)
-2. Then collect ALL required fields
-3. Then resolve
-4. NEVER resolve early
-5. DO NOT ask for fields already known
+    Required fields:
+    {obs.get("required")}
 
-VALID ACTION TYPES:
-- classify
-- ask_info
-- resolve
+    Your goal is to resolve the ticket efficiently.
 
-FORMAT:
-{{
-  "action": {{
-    "type": "...",
-    "category": "...",
-    "priority": "...",
-    "field": "..."
-  }}
-}}
-"""
+    Think carefully:
+    - You may revise earlier decisions
+    - Do not commit too early
+    - Ask missing info if unsure
+    - The message may be ambiguous
+    - Do not assume category prematurely
+    - Ask only necessary questions
+    - Avoid redundant actions
+
+    Return JSON:
+    {{"action": {{...}}}}
+    """
 
 
 # =========================
@@ -107,20 +94,20 @@ FORMAT:
 # =========================
 def call_llm(prompt):
     if client is None:
-        return None  # 🔥 triggers fallback
+        return None  # triggers fallback
 
     try:
         completion = client.chat.completions.create(
             model=os.getenv("MODEL_NAME", "unknown-model"),
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
+            temperature=0.3,
             response_format={"type": "json_object"}
         )
 
         return completion.choices[0].message.content.strip()
 
     except Exception:
-        return None  # 🔥 triggers fallback
+        return None  # triggers fallback
 
 
 # =========================
@@ -144,22 +131,21 @@ def parse_output(text):
 
 
 # =========================
-# FALLBACK (CRITICAL)
+# PURPOSE: Fallback is intentionally imperfect
 # =========================
-def fallback_policy(obs):
-    msg = obs["customer_message"].lower()
+def fallback(obs):
+
     known = obs.get("known_info", {})
     required = obs.get("required", [])
 
-    # classify once
-    if "category" not in known:
-        if "refund" in msg or "charged" in msg:
-            return {"type": "classify", "category": "billing", "priority": "high"}
-        if "delivery" in msg or "order" in msg:
-            return {"type": "classify", "category": "delivery", "priority": "high"}
-        return {"type": "classify", "category": "technical", "priority": "medium"}
+    # allow reclassification even if already classified
+    if "category" not in known or random.random() < 0.3:
+        return {
+            "type": "classify",
+            "category": "technical",
+            "priority": "medium"
+        }
 
-    # ask missing (🔥 critical)
     missing = [f for f in required if f not in known]
     if missing:
         return {"type": "ask_info", "field": missing[0]}
@@ -188,46 +174,34 @@ def is_valid_action(action, valid_actions):
 
     return True
 
-
 # =========================
-# ACTION SELECTOR
+# PURPOSE: Hybrid control (LLM + adaptive fallback)
 # =========================
 def get_action(obs, valid_actions):
 
-    #known = obs.get("known_info", {})
+    prompt = build_prompt(obs)
 
-    # HARD GUARD: prevent re-classification
-    #if "category" in known:
-    #    valid_actions = [a for a in valid_actions if a["type"] != "classify"]
-
-    known = obs.get("known_info", {})
-    required = obs.get("required", [])
-
-    missing = [f for f in required if f not in known]
-
-    # HARD OVERRIDE (prevents LLM mistakes)
-    if "category" in known:
-        if missing:
-            return {"type": "ask_info", "field": missing[0]}
-        else:
-            return {"type": "resolve"}
-
-
-    prompt = build_prompt(obs, valid_actions)
-
-    for _ in range(2):  # retry loop
+    if client:
         try:
-            output = call_llm(prompt)
-            action = parse_output(output)
+            resp = client.chat.completions.create(
+                model=os.getenv("MODEL_NAME"),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                response_format={"type": "json_object"}
+            )
 
-            if is_valid_action(action, valid_actions):
+            text = resp.choices[0].message.content
+            parsed = json.loads(text)
+
+            action = parsed.get("action")
+
+            if action and "type" in action:
                 return action
 
-        except Exception:
-            time.sleep(0.5)
+        except:
+            pass
 
-    # fallback if LLM fails
-    return fallback_policy(obs)
+    return fallback(obs)
 
 
 # =========================

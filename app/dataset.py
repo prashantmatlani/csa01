@@ -2,113 +2,226 @@
 
 # app/dataset.py
 
+"""
+PURPOSE: Production-grade multi-intent dataset
+- Introduces ambiguity (multiple valid interpretations)
+- Separates perceived vs true intent
+- Supports stochastic + difficulty-aware environments
+"""
+
 TICKETS = [
 
-    # Billing Issues
+    # =========================
+    # 1. BILLING vs DELIVERY
+    # =========================
     {
-        "ticket_id": "T1",
-        "customer_message": "I was charged twice for my order #1234. Please refund.",
-        "category": "billing",
-        "priority": "high",
-        "required_info": ["order_id"]
-    },
-    {
-        "ticket_id": "T2",
-        "customer_message": "I want to cancel my subscription and get a refund.",
-        "category": "billing",
-        "priority": "medium",
-        "required_info": ["account_email"]
-    },
-    {
-        "ticket_id": "T3",
-        "customer_message": "Why was I billed after cancelling my plan?",
-        "category": "billing",
-        "priority": "high",
-        "required_info": ["account_email"]
-    },
-    {
-        "ticket_id": "T20",
-        "customer_message": "I was charged twice and want a refund.",
-        "category": "billing",
-        "priority": "high",
-        "required_info": ["order_id", "account_email"]
+        "ticket_id": "T001",
+
+        "variants": [
+            "I was charged but didn’t receive my order",
+            "Payment went through but nothing arrived",
+            "Got billed but package is missing"
+        ],
+
+        "noise": [
+            "pls check asap",
+            "this is urgent",
+            ""
+        ],
+
+        # AGENT CONFUSION SPACE
+        "possible_categories": ["billing", "delivery"],
+
+        "ground_truth": {
+            "category": "delivery",
+            "priority": "high",
+            "required_info": ["order_id", "account_email"]
+        }
     },
 
-    # Technical Issues
+    # =========================
+    # 2. TECH vs ACCOUNT
+    # =========================
     {
-        "ticket_id": "T4",
-        "customer_message": "I can't log into my account. It says invalid credentials.",
-        "category": "technical",
-        "priority": "high",
-        "required_info": ["account_email"]
-    },
-    {
-        "ticket_id": "T5",
-        "customer_message": "The app crashes every time I upload a file.",
-        "category": "technical",
-        "priority": "medium",
-        "required_info": ["device_type"]
-    },
-    {
-        "ticket_id": "T6",
-        "customer_message": "Page not loading on checkout.",
-        "category": "technical",
-        "priority": "high",
-        "required_info": ["browser"]
-    },
-    {
-        "ticket_id": "T21",
-        "customer_message": "App crashes when I try to checkout.",
-        "category": "technical",
-        "priority": "high",
-        "required_info": ["device_type", "browser"]
-    },
-    {
-        "ticket_id": "T12",
-        "customer_message": "App is very slow lately.",
-        "category": "technical",
-        "priority": "low",
-        "required_info": ["device_type"]
+        "ticket_id": "T002",
+
+        "variants": [
+            "I can’t log into my account",
+            "Login keeps failing with error",
+            "Account not accessible"
+        ],
+
+        "noise": [
+            "tried multiple times",
+            "not sure what's wrong",
+            ""
+        ],
+
+        "possible_categories": ["technical", "account"],
+
+        "ground_truth": {
+            "category": "account",
+            "priority": "medium",
+            "required_info": ["account_email", "device_type"]
+        }
     },
 
-    # Account Issues
+    # =========================
+    # 3. BILLING vs TECH
+    # =========================
     {
-        "ticket_id": "T7",
-        "customer_message": "I forgot my password and can't reset it.",
-        "category": "account",
-        "priority": "medium",
-        "required_info": ["account_email"]
-    },
-    {
-        "ticket_id": "T8",
-        "customer_message": "My account got locked for no reason.",
-        "category": "account",
-        "priority": "high",
-        "required_info": ["account_email"]
-    },
-    {
-        "ticket_id": "T9",
-        "customer_message": "How do I change my registered email address?",
-        "category": "account",
-        "priority": "low",
-        "required_info": ["account_email"]
+        "ticket_id": "T003",
+
+        "variants": [
+            "I got charged twice for the same order",
+            "Duplicate charge happened",
+            "Payment processed twice"
+        ],
+
+        "noise": [
+            "this is frustrating",
+            "",
+        ],
+
+        "possible_categories": ["billing", "technical"],
+
+        "ground_truth": {
+            "category": "billing",
+            "priority": "high",
+            "required_info": ["order_id", "account_email"]
+        }
     },
 
-    # Edge Cases
+    # =========================
+    # 4. DELIVERY (CLEAR)
+    # =========================
     {
-        "ticket_id": "T10",
-        "customer_message": "Something is wrong with my account.",
-        "category": "other",
-        "priority": "medium",
-        "required_info": ["account_email"]
+        "ticket_id": "T004",
+
+        "variants": [
+            "My order hasn’t arrived yet",
+            "Delivery is delayed",
+            "Still waiting for package"
+        ],
+
+        "noise": [
+            "been 5 days",
+            "",
+        ],
+
+        "possible_categories": ["delivery"],
+
+        "ground_truth": {
+            "category": "delivery",
+            "priority": "medium",
+            "required_info": ["order_id"]
+        }
     },
+
+    # =========================
+    # 5. TECH (AMBIGUOUS UI ISSUE)
+    # =========================
     {
-        "ticket_id": "T11",
-        "customer_message": "I didn't receive my order but it shows delivered.",
-        "category": "other",
-        "priority": "high",
-        "required_info": ["order_id"]
+        "ticket_id": "T005",
+
+        "variants": [
+            "App crashes when I open it",
+            "Screen goes blank after launch",
+            "Something is wrong with the app"
+        ],
+
+        "noise": [
+            "happens randomly",
+            "",
+        ],
+
+        "possible_categories": ["technical"],
+
+        "ground_truth": {
+            "category": "technical",
+            "priority": "high",
+            "required_info": ["device_type", "browser"]
+        }
+    },
+
+    # =========================
+    # 6. ACCOUNT vs BILLING
+    # =========================
+    {
+        "ticket_id": "T006",
+
+        "variants": [
+            "My subscription is active but I can’t use features",
+            "Paid but features locked",
+            "Account says active but not working"
+        ],
+
+        "noise": [
+            "pls fix",
+            "",
+        ],
+
+        "possible_categories": ["account", "billing"],
+
+        "ground_truth": {
+            "category": "account",
+            "priority": "high",
+            "required_info": ["account_email"]
+        }
+    },
+
+    # =========================
+    # 7. HARD: MULTI-LAYER ISSUE
+    # =========================
+    {
+        "ticket_id": "T007",
+
+        "variants": [
+            "Order delayed and I was charged twice",
+            "Late delivery and duplicate payment issue",
+            "Package not here and billing looks wrong"
+        ],
+
+        "noise": [
+            "very frustrating",
+            "please resolve quickly",
+            ""
+        ],
+
+        "possible_categories": ["billing", "delivery"],
+
+        "ground_truth": {
+            "category": "billing",  # root cause focus
+            "priority": "high",
+            "required_info": ["order_id", "account_email"]
+        }
+    },
+
+    # =========================
+    # 8. HARD: VAGUE + NOISY
+    # =========================
+    {
+        "ticket_id": "T008",
+
+        "variants": [
+            "Something is wrong with my account",
+            "Not working properly",
+            "Issue with my profile"
+        ],
+
+        "noise": [
+            "not sure what exactly",
+            "pls help",
+            ""
+        ],
+
+        "possible_categories": ["technical", "account"],
+
+        "ground_truth": {
+            "category": "technical",
+            "priority": "medium",
+            "required_info": ["device_type"]
+        }
     }
-    
 
-    ]
+]
