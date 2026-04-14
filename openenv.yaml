@@ -1,4 +1,17 @@
-name: customer-support-agent
+
+---
+title: Customer Support OpenEnv Environment
+emoji: 🤖
+colorFrom: blue
+colorTo: green
+sdk: docker
+tags:
+  - openenv
+  - reinforcement-learning
+  - llm
+  - customer-support
+---
+
 description: >
   A goal-oriented customer support environment where an agent must gather
   required information from the user and resolve the ticket efficiently.

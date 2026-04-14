@@ -41,6 +41,157 @@ Build and evaluate an agent that can:
 
 ## 🏗️ System Architecture
 
++----------------------+
+|   Customer Ticket    |
+| (noisy, ambiguous)   |
++----------+-----------+
+           |
+           v
++----------------------+
+|  Environment (env.py)|
+|----------------------|
+| - State              |
+| - Reward             |
+| - Stochasticity      |
++----------+-----------+
+           |
+           v
++----------------------+
+|  Observation Space   |
+|----------------------|
+| message              |
+| known_info           |
+| required             |
++----------+-----------+
+           |
+           v
++----------------------+
+|   Agent (LLM + Rule) |
+|----------------------|
+| - Reasoning (LLM)    |
+| - Constraints        |
+| - Fallback           |
++----------+-----------+
+           |
+           v
++----------------------+
+|   Action             |
+|----------------------|
+| classify             |
+| ask_info             |
+| resolve              |
++----------+-----------+
+           |
+           v
++----------------------+
+|   Environment Step   |
+|----------------------|
+| reward               |
+| next_state           |
++----------------------+
+
+
+## Interaction Loop
+
+RESET → OBSERVE → ACT → STEP → REPEAT
+
+Detailed Flow:
+
+[RESET]
+   ↓
+[Observation]
+   ↓
+[Agent Decision]
+   ↓
+[Action]
+   ↓
+[Environment Step]
+   ↓
+[Reward + Next State]
+   ↓
+[Done?] ── No ──> Loop
+   │
+  Yes
+   ↓
+[Episode End]
+
+
+## Self-Correction Loop
+
+Initial Flow:
+classify → ask_info → resolve
+
+With Self-Correction:
+
+classify
+   ↓
+ask_info
+   ↓
+[New Information Arrives]
+   ↓
+re-evaluate decision
+   ↓
+re-classify (if needed)
+   ↓
+ask remaining info
+   ↓
+resolve
+
+## Agent Decision Logic
+
+IF not classified:
+    → classify
+
+ELIF missing required fields:
+    → ask_info
+
+ELIF uncertain:
+    → re-classify
+
+ELSE:
+    → resolve
+
+## Stochastic Behavior
+
+Customer Message =
+    base_variant
+  + noise injection
+  + ambiguity
+
+Required Info =
+    full_schema
+  - randomly masked fields
+
+Difficulty Controls:
+    EASY   → low noise, clear signals
+    MEDIUM → moderate noise
+    HARD   → high ambiguity + missing info
+
+## Reward Flow
+
+Action → Immediate Reward → Final Outcome
+
+Examples:
+
+ask_info (useful)      → +0.3
+repeat ask             → -0.3
+step penalty           → -0.05
+correct classify       → +0.2
+premature resolve      → -1.0 (hard)
+successful resolve     → +0.2 to +1.0
+
+## Example Episode
+
+Step 1: classify         → reward -0.05
+Step 2: ask_info         → reward +0.20
+Step 3: re-classify      → reward -0.05
+Step 4: resolve          → reward +0.45
+
+Outcome:
+✔ success
+✔ self-correction observed
+✔ efficient resolution
+
 ### 1. Environment (`env.py`)
 
 A **stateful, stochastic simulation** of customer support operations.
