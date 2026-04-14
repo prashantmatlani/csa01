@@ -1,17 +1,14 @@
 ---
-
 title: Customer Support OpenEnv Environment
 emoji: 🤖
 colorFrom: blue
 colorTo: green
 sdk: docker
 tags:
-
-* openenv
-* reinforcement-learning
-* llm
-* customer-support
-
+  - openenv
+  - reinforcement-learning
+  - llm
+  - customer-support
 ---
 
 # 🤖 Customer Support Agent — OpenEnv Environment
